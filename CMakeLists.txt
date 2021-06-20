@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
 project(Mandelbrot)
 
-add_executable(${PROJECT_NAME} src/main.cpp src/Viewer.cpp src/FractalQueue.cpp src/Fractal.cpp src/Point.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/Viewer.cpp src/Fractal.cpp src/Point.cpp)
 
 INCLUDE(FindPkgConfig)
 

@@ -1,7 +1,7 @@
 #ifndef VIEWER_H_
 #define VIEWER_H_
 
-#include <mutex>
+#include <thread>
 #include <SDL2/SDL.h>
 
 #include "Fractal.h"
@@ -9,21 +9,21 @@
 class Viewer
 {
 public:
-    Viewer(int width, int height);
+    Viewer(int width, int height, int num_threads);
     ~Viewer();
     void run();
     void setFractal(std::unique_ptr<Fractal> fractal);
 
 private:
-    SDL_Window *_window;
-    SDL_Renderer *_renderer;
-    std::unique_ptr<Fractal> _fractal;
+    SDL_Window *window_;
+    SDL_Renderer *renderer_;
+    std::unique_ptr<Fractal> fractal_;
 
-    void compute();
-    void render();
+    void render(); // render points array using SDL
 
-    const int _width;
-    const int _height;
+    const int width_;
+    const int height_;
+    const int num_threads_;
 };
 
 #endif // VIEWER_H_

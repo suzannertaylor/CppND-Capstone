@@ -1,26 +1,19 @@
-#include <iostream>
-#include <complex>
-#include <thread>
+#include <future>
 #include <vector>
-#include <tuple>
-#include <algorithm>
-#include <chrono>
-#include <mutex>
+#include <iostream>
 
 #include "Fractal.h"
-#include "Point.h"
-#include "FractalQueue.h"
 
-Fractal::Fractal(int width, int height, int numThreads)
-    : _width(width), _height(height), _numThreads(numThreads)
+Fractal::Fractal(int width, int height, int num_threads)
+    : width_(width), height_(height), num_threads_(num_threads)
 {
-    _center = _cStartCenter;
-    _zoom = 0.00417455;
+    this->center_ = this->const_start_center_;
+    this->zoom_ = this->const_start_zoom_;
 
-    for (int y = 0; y < _height; y++)
+    for (int y = 0; y < this->height_; y++)
     {
-        std::vector<Point> row(_width);
-        _fractal.emplace_back(row);
+        std::vector<Point> row(this->width_);
+        this->fractal_.emplace_back(row);
     }
 }
 
@@ -30,23 +23,28 @@ Fractal::~Fractal()
 
 void Fractal::launch()
 {
-    FractalQueue q("Fractal queue", _numThreads);
-    for (int i = 0; i < _numThreads; i++)
+    std::vector<std::future<void>> futures;
+    for (int i = 0; i < this->num_threads_; ++i)
     {
-        q.dispatch([i, this]()
-                   { this->compute(i); });
+        futures.emplace_back(std::async(std::launch::deferred, &Fractal::compute, this, i));
+    }
+
+    // wait for tasks to complete
+    for (const std::future<void> &ftr : futures)
+    {
+        ftr.wait();
     }
 }
 
-void Fractal::compute(int threadId)
+void Fractal::compute(int thread_id)
 {
-    //std::cout << "   Processing Thread ID " << threadId << " has been sent to the queue" << std::endl;
-    for (int y = threadId; y < _height; y += _numThreads)
+    std::cout << "   Processing Thread ID " << thread_id << " has been sent to the queue" << std::endl;
+    for (int y = thread_id; y < this->height_; y += this->num_threads_)
     {
-        for (int x = 0; x < _width; x++)
+        for (int x = 0; x < this->width_; x++)
         {
-            std::vector<int> colour = calculateColour(x, y);
-            _fractal[y][x].setColour(colour[0], colour[1], colour[2]);
+            std::vector<int> colour = this->calculateColour(x, y);
+            this->fractal_[y][x].setColour(colour[0], colour[1], colour[2]);
         }
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -54,13 +52,13 @@ void Fractal::compute(int threadId)
 
 int Fractal::mandelbrotSet(int x, int y)
 {
-    std::complex<double> c((_center.real() + (x - (_width / 2)) * _zoom),
-                           (_center.imag() + (y - (_height / 2)) * _zoom));
+    std::complex<double> c((this->center_.real() + (x - (this->width_ / 2)) * this->zoom_),
+                           (this->center_.imag() + (y - (this->height_ / 2)) * this->zoom_));
     std::complex<double> z(0.0, 0.0);
 
     int n = 0;
 
-    while (abs(z) < 2.0 && n < _maxIterations)
+    while (abs(z) < 2.0 && n < this->max_iterations_)
     {
         z = (z * z) + c;
         ++n;
@@ -74,54 +72,59 @@ std::vector<int> Fractal::calculateColour(int x, int y)
     int g = 0;
     int b = 0;
 
-    int n = mandelbrotSet(x, y);
+    int n = this->mandelbrotSet(x, y);
 
     double smooth1 = 0.0;
-    if (n == 0 || n == _maxIterations)
+    if (n == 0 || n == this->max_iterations_)
     {
         return {0, 0, 0};
     }
 
-    smooth1 = (255 * n) / _maxIterations;
+    smooth1 = (255 * n) / this->max_iterations_;
 
     auto scale = [](double value, double in_min, double in_max, double out_min, double out_max)
     {
         return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
     };
 
-    b = scale(smooth1 * smooth1, 0, 255, 0, 255);
+    r = scale(smooth1 * smooth1, 0, 255, 0, 255);
     g = scale(smooth1, 0, 255, 0, 255);
-    r = scale(smooth1, 0, sqrt(255), 0, 255);
+    b = scale(smooth1, 0, sqrt(255), 0, 255);
 
     return {r, g, b};
 }
 
 void Fractal::moveUp()
 {
-    _center.imag(_center.imag() + (_cMove * _cZoom));
+    this->center_.imag(this->center_.imag() + (this->const_move_ * this->const_zoom_));
 }
 
 void Fractal::moveDown()
 {
-    _center.imag(_center.imag() - (_cMove * _cZoom));
+    this->center_.imag(this->center_.imag() - (this->const_move_ * this->const_zoom_));
 }
 
 void Fractal::moveLeft()
 {
-    _center.real(_center.real() + (_cMove * _cZoom));
+    this->center_.real(this->center_.real() + (this->const_move_ * this->const_zoom_));
 }
 
 void Fractal::moveRight()
 {
-    _center.real(_center.real() - (_cMove * _cZoom));
+    this->center_.real(this->center_.real() - (this->const_move_ * this->const_zoom_));
 }
 
 void Fractal::zoomIn()
 {
-    _zoom *= _cZoom;
+    this->zoom_ *= this->const_zoom_;
 }
 
 void Fractal::zoomOut()
 {
-    _zoom /= _cZoom;
+    this->zoom_ /= this->const_zoom_;
+}
+
+std::tuple<int, int, int> Fractal::getColour(int x, int y)
+{
+    return this->fractal_[y][x].getColour();
 }

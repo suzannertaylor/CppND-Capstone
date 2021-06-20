@@ -1,11 +1,9 @@
 #include <iostream>
-#include <SDL2/SDL.h>
 
 #include "Viewer.h"
-#include "Fractal.h"
 
-Viewer::Viewer(int width, int height)
-    : _width(width), _height(height)
+Viewer::Viewer(int width, int height, int num_threads)
+    : width_(width), height_(height), num_threads_(num_threads)
 {
     //Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -13,14 +11,14 @@ Viewer::Viewer(int width, int height)
         std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << "/n";
     }
     //Create window
-    _window = SDL_CreateWindow("SDL Tutorial",
-                               SDL_WINDOWPOS_CENTERED,
-                               SDL_WINDOWPOS_CENTERED,
-                               _width,
-                               _height,
-                               SDL_WINDOW_SHOWN);
+    this->window_ = SDL_CreateWindow("Mandelbrot Viewer",
+                                     SDL_WINDOWPOS_CENTERED,
+                                     SDL_WINDOWPOS_CENTERED,
+                                     this->width_,
+                                     this->height_,
+                                     SDL_WINDOW_SHOWN);
 
-    if (_window == nullptr)
+    if (this->window_ == nullptr)
     {
         std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << "/n";
     }
@@ -30,9 +28,9 @@ Viewer::Viewer(int width, int height)
     Uint32 render_flags = SDL_RENDERER_ACCELERATED;
 
     // creates a renderer to render our images
-    _renderer = SDL_CreateRenderer(_window, -1, render_flags);
+    this->renderer_ = SDL_CreateRenderer(this->window_, -1, render_flags);
 
-    if (_renderer == nullptr)
+    if (this->renderer_ == nullptr)
     {
         std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << "/n";
     }
@@ -40,39 +38,33 @@ Viewer::Viewer(int width, int height)
 
 Viewer::~Viewer()
 {
-    if (_renderer != nullptr)
+    if (this->renderer_ != nullptr)
     {
         // destroy renderer
-        SDL_DestroyRenderer(_renderer);
+        SDL_DestroyRenderer(renderer_);
     }
 
-    if (_window != nullptr)
+    if (this->window_ != nullptr)
     {
         //Destroy window
-        SDL_DestroyWindow(_window);
+        SDL_DestroyWindow(this->window_);
     }
 
     //Quit SDL subsystems
     SDL_Quit();
 }
 
-void Viewer::setFractal(std::unique_ptr<Fractal> fractal)
-{
-    this->_fractal = std::move(fractal);
-}
-
 void Viewer::run()
 {
     int close = 0;
-
     SDL_Event event;
     // annimation loop
+    this->fractal_->launch();
     while (!close)
     {
-        _fractal->launch();
-        render();
+        this->render();
 
-        SDL_RenderPresent(_renderer);
+        SDL_RenderPresent(this->renderer_);
 
         // Events mangement
         while (SDL_PollEvent(&event))
@@ -91,42 +83,48 @@ void Viewer::run()
                     close = 1;
                     break;
                 case SDLK_UP:
-                    _fractal->moveUp();
+                    fractal_->moveUp();
                     break;
                 case SDLK_DOWN:
-                    _fractal->moveDown();
+                    fractal_->moveDown();
                     break;
                 case SDLK_LEFT:
-                    _fractal->moveLeft();
+                    fractal_->moveLeft();
                     break;
                 case SDLK_RIGHT:
-                    _fractal->moveRight();
+                    fractal_->moveRight();
                     break;
                 case SDLK_EQUALS:
-                    _fractal->zoomIn();
+                    fractal_->zoomIn();
                     break;
                 case SDLK_MINUS:
-                    _fractal->zoomOut();
+                    fractal_->zoomOut();
                     break;
                 default:
                     break;
                 }
+                this->fractal_->launch();
             }
         }
     }
 }
 
+void Viewer::setFractal(std::unique_ptr<Fractal> fractal)
+{
+    this->fractal_ = std::move(fractal);
+}
+
 void Viewer::render()
 {
-    for (int y = 0; y < _height; y++)
+    for (int y = 0; y < this->height_; y++)
     {
-        for (int x = 0; x < _width; x++)
+        for (int x = 0; x < this->width_; x++)
         {
             unsigned int r, g, b;
-            std::tie(r, g, b) = _fractal->getColour(x, y);
-            SDL_SetRenderDrawColor(_renderer, r, g, b, SDL_ALPHA_OPAQUE);
+            std::tie(r, g, b) = this->fractal_->getColour(x, y);
+            SDL_SetRenderDrawColor(this->renderer_, r, g, b, SDL_ALPHA_OPAQUE);
 
-            SDL_RenderDrawPoint(_renderer, x, y);
+            SDL_RenderDrawPoint(this->renderer_, x, y);
         }
     }
 }
