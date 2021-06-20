@@ -1,0 +1,15 @@
+Cmake help
+https://stackoverflow.com/questions/23850472/how-to-use-sdl2-and-sdl-image-with-cmake
+
+SDL
+https://www.geeksforgeeks.org/sdl-library-in-c-c-with-examples/
+https://lazyfoo.net/tutorials/SDL/index.php#Hello%20SDL
+
+Mandelbrot
+https://stackoverflow.com/
+http://www.scienceandcode.com/2020/09/04/mandelbrot-set-explorer/
+
+Queue
+https://embeddedartistry.com/blog/2017/02/08/implementing-an-asynchronous-dispatch-queue/
+
+OpenGL Programming Guide 8th Edition  Dave Shreiner, Graham Sellers, John Kessenich, Bill Licea-Kane
